@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 // Variable global con los productos cargados para mantener la estructura en memoria durante la ejecución
@@ -47,7 +48,6 @@ func getProductsStruct() (products models.Products, err error) {
 }
 
 func GetProducts(ctx *gin.Context) {
-
 	// response
 	ctx.JSON(http.StatusOK, models.Response{Message: "ok", Data: products})
 }
@@ -71,6 +71,11 @@ func GetProductById(ctx *gin.Context) {
 			prod = v
 			break
 		}
+	}
+
+	if err := validator.New().Struct(prod); err != nil {
+		ctx.JSON(http.StatusBadRequest, models.Response{Message: "Producto no hallado", Data: nil})
+		return
 	}
 
 	// response
@@ -99,20 +104,30 @@ func GetProductByPrice(ctx *gin.Context) {
 
 	// response
 
-	ctx.JSON(http.StatusOK, models.Response{Message: "ok", Data: p})
+	ctx.JSON(http.StatusCreated, models.Response{Message: "ok", Data: p})
 }
 
 func AddProduct(ctx *gin.Context) {
+
+	//request
 	var product models.Product
 
-	if err := ctx.BindJSON(&product); err != nil {
+	if err := ctx.ShouldBind(&product); err != nil {
 		ctx.JSON(http.StatusBadRequest, models.Response{Message: err.Error(), Data: nil})
+		return
 	}
 
-	product.Id = len(products.Products) + 1
+	//process
+
+	if err := validator.New().Struct(product); err != nil {
+		ctx.JSON(http.StatusBadRequest, models.Response{Message: err.Error(), Data: nil})
+		return
+	}
+
+	product.Id = products.Products[len(products.Products)-1].Id + 1
 
 	products.Products = append(products.Products, product)
-
+	//response
 	ctx.JSON(http.StatusOK, models.Response{Message: "Agregado correctamente", Data: products})
 }
 
