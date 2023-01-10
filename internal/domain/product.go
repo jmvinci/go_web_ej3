@@ -1,4 +1,4 @@
-package models
+package domain
 
 type Product struct {
 	Id          int     `json:"id"`
@@ -8,13 +8,4 @@ type Product struct {
 	IsPublished bool    `json:"is_published"`
 	Expiration  string  `json:"expiration" validate:"required"`
 	Price       float64 `json:"price" validate:"required"`
-}
-
-type Products struct {
-	Products []Product `json:"products"`
-}
-
-type Response struct {
-	Message string `json:"message"`
-	Data    any    `json:"data"`
 }
