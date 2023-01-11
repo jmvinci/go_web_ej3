@@ -1,7 +1,7 @@
-package middleware
+package middlewares
 
 import (
-	"ejercicio3/pkg"
+	"ejercicio3/pkg/web"
 	"log"
 	"net/http"
 	"os"
@@ -17,12 +17,12 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token := ctx.GetHeader("TOKEN")
 		if token == "" {
-			ctx.JSON(http.StatusUnauthorized, pkg.Response{Message: "API token required", Data: nil})
+			ctx.JSON(http.StatusUnauthorized, web.Response{Message: "API token required", Data: nil})
 			ctx.Abort()
 			return
 		}
 		if token != requiredToken {
-			ctx.JSON(http.StatusUnauthorized, pkg.Response{Message: "Not token provided", Data: nil})
+			ctx.JSON(http.StatusUnauthorized, web.Response{Message: "Invalid token", Data: nil})
 			ctx.Abort()
 			return
 		}

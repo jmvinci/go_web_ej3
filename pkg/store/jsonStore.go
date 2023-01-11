@@ -4,7 +4,6 @@ import (
 	"ejercicio3/internal/domain"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 )
@@ -14,119 +13,45 @@ var (
 	ErrIdNotFound error = errors.New("error: id no hallado")
 )
 
-type Products interface {
-	GetById(id int) (prod domain.Product, err error)
-	Delete(id int) (msg string, err error)
+type Storage interface {
+	Get() (products []domain.Product, err error)
+	Set(newJson []domain.Product) (err error)
 }
 
-type products struct {
-	Products *[]domain.Product
+type storage struct {
+	Path string
 }
 
-func NewStore() Products {
-	var prod products
-	db, err := prod.getProductsStruct()
-	if err != nil {
-		panic(err)
-	}
-	return &products{Products: db.Products}
+func NewStore(path string) Storage {
+	return &storage{Path: path}
 }
 
-func (p *products) openJsonFile() (jsonFile *os.File, err error) {
-	jsonFile, err = os.Open("products.json")
+func (s *storage) Get() (products []domain.Product, err error) {
+	jsonFile, err := os.Open(s.Path)
 
 	if err != nil {
 		return
 	}
-	return
-}
-
-func (p *products) getProductsStruct() (products products, err error) {
-
-	jsonFile, err := p.openJsonFile()
-
-	if err != nil {
-		return
-	}
-
 	byteValue, err := io.ReadAll(jsonFile)
 
 	if err != nil {
 		return
 	}
 
-	if err = json.Unmarshal(byteValue, &products.Products); err != nil {
+	if err = json.Unmarshal(byteValue, &products); err != nil {
 		return
 	}
-
 	defer jsonFile.Close()
-
 	return
+
 }
-
-func (p *products) GetById(id int) (prod domain.Product, err error) {
-	for _, v := range *p.Products {
-		if v.Id == id {
-			prod = v
-			break
-		}
-	}
-	return
-}
-
-func (p *products) Delete(id int) (msg string, err error) {
-
-	aux, index := p.checkId(id)
-	if !aux {
-		err = ErrIdNotFound
+func (s *storage) Set(newJson []domain.Product) (err error) {
+	byteValue, err := json.Marshal(newJson)
+	if err != nil {
 		return
 	}
-	db := *p.Products
-	*p.Products = append(db[:index], db[index+1:]...)
-	msg = fmt.Sprintf("Producto con id: %d borrado correctamente", id)
-	return
-}
-
-func (p *products) Update(id int, pr domain.Product) (prod domain.Product, err error) {
-	aux, index := p.checkId(id)
-	if !aux {
-		err = ErrIdNotFound
+	if err = os.WriteFile(s.Path, byteValue, 0644); err != nil {
 		return
-	}
-
-	option, ind := p.checkCodeValue(pr.CodeValue)
-	db := *p.Products
-
-	if option && db[ind].CodeValue != pr.CodeValue {
-		err = ErrCodeValue
-		return
-	}
-
-	pr.Id = id
-	db[index] = pr
-	prod = pr
-	return
-}
-
-func (p *products) checkId(id int) (aux bool, index int) {
-	for i, v := range *p.Products {
-		if v.Id == id {
-			aux = true
-			index = i
-			break
-		}
-	}
-	return
-}
-
-func (p *products) checkCodeValue(codeValue string) (option bool, index int) {
-
-	for i, v := range *p.Products {
-		if v.CodeValue == codeValue {
-			option = true
-			index = i
-			break
-		}
 	}
 	return
 }

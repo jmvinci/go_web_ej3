@@ -2,21 +2,21 @@ package routes
 
 import (
 	handlers "ejercicio3/cmd/server/handler"
-	"ejercicio3/internal/domain"
+	"ejercicio3/cmd/server/middlewares"
 	"ejercicio3/internal/product"
-	"ejercicio3/middleware"
+	"ejercicio3/pkg/store"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Router struct {
-	db *[]domain.Product
+	st store.Storage
 
 	en *gin.Engine
 }
 
-func NewRouter(en *gin.Engine, db *[]domain.Product) *Router {
-	return &Router{en: en, db: db}
+func NewRouter(en *gin.Engine, storage *store.Storage) *Router {
+	return &Router{en: en, st: *storage}
 }
 
 func (r *Router) SetRoutes() {
@@ -26,7 +26,7 @@ func (r *Router) SetRoutes() {
 // website
 func (r *Router) SetProduct() {
 	// instances
-	rp := product.NewRepository(r.db)
+	rp := product.NewRepository(&r.st)
 	sv := product.NewService(&rp)
 	h := handlers.NewProduct(sv)
 
@@ -38,7 +38,7 @@ func (r *Router) SetProduct() {
 	p.GET("/:id", h.GetById())
 	p.GET("/search", h.GetProductsByPrice())
 
-	p.Use(middleware.AuthMiddleware())
+	p.Use(middlewares.AuthMiddleware())
 	{
 		p.POST("/", h.Create())
 		p.DELETE("/:id", h.DeleteById())

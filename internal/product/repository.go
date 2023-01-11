@@ -2,12 +2,13 @@ package product
 
 import (
 	"ejercicio3/internal/domain"
+	"ejercicio3/pkg/store"
 	"errors"
 	"fmt"
 )
 
 type repository struct {
-	db *[]domain.Product
+	st *store.Storage
 }
 
 type Repository interface {
@@ -26,8 +27,8 @@ var (
 	ErrIdNotFound error = errors.New("error: id no hallado")
 )
 
-func NewRepository(db *[]domain.Product) Repository {
-	return &repository{db: db}
+func NewRepository(st *store.Storage) Repository {
+	return &repository{st: st}
 }
 
 func (r *repository) GetById(id int) (product domain.Product, err error) {
@@ -36,7 +37,9 @@ func (r *repository) GetById(id int) (product domain.Product, err error) {
 		err = ErrIdNotFound
 		return
 	}
-	for _, v := range *r.db {
+	db, err := (*r.st).Get()
+
+	for _, v := range db {
 		if v.Id == id {
 			product = v
 			break
@@ -46,12 +49,20 @@ func (r *repository) GetById(id int) (product domain.Product, err error) {
 }
 
 func (r *repository) GetAll() (products []domain.Product, err error) {
-	products = *r.db
+	products, err = (*r.st).Get()
+	fmt.Println(products)
+	if err != nil {
+		return
+	}
 	return
 }
 
 func (r *repository) GetProducstByPrice(price float64) (products []domain.Product, err error) {
-	for _, v := range *r.db {
+	db, err := (*r.st).Get()
+	if err != nil {
+		return
+	}
+	for _, v := range db {
 		if v.Price > price {
 			products = append(products, v)
 		}
@@ -66,12 +77,17 @@ func (r *repository) Create(p domain.Product) (product domain.Product, err error
 		err = ErrCodeValue
 		return
 	}
-
-	len := len(*r.db)
-	db := *r.db
+	db, err := (*r.st).Get()
+	if err != nil {
+		return
+	}
+	len := len(db)
 	p.Id = db[len-1].Id + 1
 	product = p
-	*r.db = append(*r.db, p)
+	db = append(db, p)
+	if err = (*r.st).Set(db); err != nil {
+		return
+	}
 	return
 }
 
@@ -88,7 +104,11 @@ func (r *repository) Update(id int, p domain.Product) (prod domain.Product, err 
 	}
 
 	option, ind := r.checkCodeValue(p.CodeValue)
-	db := *r.db
+	db, err := (*r.st).Get()
+
+	if err != nil {
+		return
+	}
 
 	if option && db[ind].CodeValue != p.CodeValue {
 		err = ErrCodeValue
@@ -97,6 +117,9 @@ func (r *repository) Update(id int, p domain.Product) (prod domain.Product, err 
 
 	p.Id = id
 	db[index] = p
+	if err = (*r.st).Set(db); err != nil {
+		return
+	}
 	prod = p
 	return
 }
@@ -108,8 +131,14 @@ func (r *repository) Delete(id int) (msg string, err error) {
 		err = ErrIdNotFound
 		return
 	}
-	db := *r.db
-	*r.db = append(db[:index], db[index+1:]...)
+	db, err := (*r.st).Get()
+	if err != nil {
+		return
+	}
+	db = append(db[:index], db[index+1:]...)
+	if err = (*r.st).Set(db); err != nil {
+		return
+	}
 	msg = fmt.Sprintf("Producto con id: %d borrado correctamente", id)
 	return
 }
@@ -120,15 +149,21 @@ func (r *repository) PartialUpdate(id int, product domain.Product) (prod domain.
 		err = ErrIdNotFound
 		return
 	}
-	db := *r.db
+	db, err := (*r.st).Get()
+	if err != nil {
+		return
+	}
 	db[index] = product
+	if err = (*r.st).Set(db); err != nil {
+		return
+	}
 	prod = db[index]
 	return
 }
 
 func (r *repository) checkCodeValue(codeValue string) (option bool, index int) {
-
-	for i, v := range *r.db {
+	db, _ := (*r.st).Get()
+	for i, v := range db {
 		if v.CodeValue == codeValue {
 			option = true
 			index = i
@@ -139,7 +174,8 @@ func (r *repository) checkCodeValue(codeValue string) (option bool, index int) {
 }
 
 func (r *repository) checkId(id int) (aux bool, index int) {
-	for i, v := range *r.db {
+	db, _ := (*r.st).Get()
+	for i, v := range db {
 		if v.Id == id {
 			aux = true
 			index = i

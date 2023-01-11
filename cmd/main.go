@@ -2,7 +2,7 @@ package main
 
 import (
 	"ejercicio3/cmd/server/routes"
-	"ejercicio3/pkg"
+	"ejercicio3/pkg/store"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -20,14 +20,19 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	db, err := pkg.GetProductsStruct()
+
+	//
+
+	storage := store.NewStore("products.json")
+
+	//db, err := pkg.GetProductsStruct()
 
 	if err != nil {
 		panic(err)
 	}
 
 	en := gin.Default()
-	rt := routes.NewRouter(en, &db)
+	rt := routes.NewRouter(en, &storage)
 	rt.SetProduct()
 
 	if err := en.Run(); err != nil {
