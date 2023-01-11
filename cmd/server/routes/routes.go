@@ -4,12 +4,14 @@ import (
 	handlers "ejercicio3/cmd/server/handler"
 	"ejercicio3/internal/domain"
 	"ejercicio3/internal/product"
+	"ejercicio3/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Router struct {
 	db *[]domain.Product
+
 	en *gin.Engine
 }
 
@@ -31,9 +33,17 @@ func (r *Router) SetProduct() {
 	p := r.en.Group("/product")
 
 	r.en.GET("/ping", h.PingPong())
+
 	p.GET("/", h.GetAll())
 	p.GET("/:id", h.GetById())
 	p.GET("/search", h.GetProductsByPrice())
-	p.POST("/", h.Create())
+
+	p.Use(middleware.AuthMiddleware())
+	{
+		p.POST("/", h.Create())
+		p.DELETE("/:id", h.DeleteById())
+		p.PUT("/:id", h.UpdateProduct())
+		p.PATCH("/:id", h.PartialUpdate())
+	}
 
 }

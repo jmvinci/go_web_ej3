@@ -84,7 +84,7 @@ func (p *Product) GetProductsByPrice() gin.HandlerFunc {
 func (p *Product) Create() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var product domain.Product
-		if err := ctx.ShouldBind(&product); err != nil {
+		if err := ctx.ShouldBindJSON(&product); err != nil {
 			ctx.JSON(http.StatusBadRequest, pkg.Response{Message: err.Error(), Data: nil})
 			return
 		}
@@ -96,6 +96,67 @@ func (p *Product) Create() gin.HandlerFunc {
 		}
 
 		ctx.JSON(http.StatusOK, pkg.Response{Message: "ok", Data: p})
+
+	}
+}
+
+func (p *Product) DeleteById() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		id, err := strconv.Atoi(ctx.Param("id"))
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, pkg.Response{Message: err.Error(), Data: nil})
+			return
+		}
+		msg, err := p.sv.Delete(id)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, pkg.Response{Message: err.Error(), Data: nil})
+			return
+		}
+		ctx.JSON(http.StatusOK, pkg.Response{Message: msg, Data: nil})
+	}
+}
+
+func (p *Product) UpdateProduct() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		id, err := strconv.Atoi(ctx.Param("id"))
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, pkg.Response{Message: err.Error(), Data: nil})
+			return
+		}
+		var prod domain.Product
+		if err := ctx.ShouldBind(&prod); err != nil {
+			ctx.JSON(http.StatusBadRequest, pkg.Response{Message: err.Error(), Data: nil})
+			return
+		}
+
+		pr, err := p.sv.Update(id, prod)
+
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, pkg.Response{Message: err.Error(), Data: nil})
+			return
+		}
+
+		ctx.JSON(http.StatusOK, pkg.Response{Message: "Producto actualizado", Data: pr})
+
+	}
+}
+
+func (p *Product) PartialUpdate() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		id, err := strconv.Atoi(ctx.Param("id"))
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, pkg.Response{Message: err.Error(), Data: nil})
+			return
+		}
+
+		prod, err := p.sv.PartialUpdate(id, ctx.Request.Body)
+
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, pkg.Response{Message: err.Error(), Data: nil})
+			return
+		}
+
+		ctx.JSON(http.StatusOK, pkg.Response{Message: "Producto actualizado", Data: prod})
 
 	}
 }
